@@ -100,7 +100,7 @@ namespace MGUSpeechExporter
                 atfDoc.SaveAllData(output);
             }
 
-            MessageBox.Show("Export is complete.", "MGU Sound Exporter", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show("Export is complete.", "MGU Speech Exporter", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
 }
