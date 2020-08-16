@@ -32,9 +32,25 @@ namespace MGUSpeechExporter
 
             MemoryStream stream = new MemoryStream();
 
-            fs.Seek(Header.TextOffset, SeekOrigin.Begin);
+            fs.Seek(Header.TextOffset + 8, SeekOrigin.Begin);
 
-            // ToDo: Read text into MemoryStream
+            do
+            {
+                int read = fs.ReadByte();
+
+                if (read == 0xFF)
+                    break;
+
+                if (read != 0x00)
+                    stream.WriteByte((byte)read);
+                else
+                {
+                    stream.WriteByte(Convert.ToByte('\r'));
+                    stream.WriteByte(Convert.ToByte('\n'));
+
+                    fs.Seek(8, SeekOrigin.Current);
+                }
+            } while (fs.Position < Header.WaveOffset && fs.Position < fs.Length);
 
             return stream;
         }
@@ -51,7 +67,7 @@ namespace MGUSpeechExporter
 
             string path = Path.Combine(folder.FullName, GetOutputFileName(".wav"));
 
-            using (FileStream output = File.Create(path, Header.WaveSize))
+            using (FileStream output = File.Create(path))
             {
                 input.Seek(Header.WaveOffset, SeekOrigin.Begin);
                 CopyStream(input, output, Header.WaveSize);
@@ -66,9 +82,9 @@ namespace MGUSpeechExporter
 
             using (MemoryStream stream = ReadText(input))
             {
-                if (stream.Capacity <= 0) return;
+                if (stream.Length <= 0) return;
 
-                using (FileStream output = File.Create(path, stream.Capacity))
+                using (FileStream output = File.Create(path))
                 {
                     stream.Seek(0, SeekOrigin.Begin);
                     stream.CopyTo(output);
