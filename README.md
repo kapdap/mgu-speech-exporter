@@ -1,6 +1,6 @@
 # MGU Speech Exporter
 
-A tool to export speech audio files from the PC game Martian Gothic: Unification.
+A tool to export speech audio and text files from the PC game Martian Gothic: Unification.
 
 ## Download
 
