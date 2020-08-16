@@ -87,7 +87,7 @@ namespace MGUSpeechExporter
                 if (result == DialogResult.Yes)
                     output.Create();
                 else
-                    throw new ExportException("Could create the output folder.");
+                    throw new ExportException("Could not create the output folder.");
 
                 output.Refresh();
             }
