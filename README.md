@@ -4,7 +4,7 @@ A tool to export speech audio and text files from the PC game Martian Gothic: Un
 
 ## Download
 
-[Click here](https://github.com/kapdap/mgu-speech-exporter/releases/download/70d95f4/MGUSpeechExporter.exe) to download the latest release.
+[Click here](https://github.com/kapdap/mgu-speech-exporter/releases/download/testing/MGUSpeechExporter.exe) to download the latest release.
 
 # Acknowledgements
 
