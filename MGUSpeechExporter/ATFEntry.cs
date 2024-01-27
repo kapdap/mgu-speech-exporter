@@ -1,10 +1,27 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Text;
 
 namespace MGUSpeechExporter
 {
     public struct ATFEntry
     {
+        public static Dictionary<short, string> Characters => new Dictionary<short, string>()
+            {
+                { 0, "MOOD" },
+                { 1, "Martin Karne" },
+                { 2, "Kenzo Uji" },
+                { 3, "Diane Matlock" },
+                { 4, "Ben Gunn" },
+                { 5, "Computer" },
+                { 6, "Recording" },
+                { 7, "Rock Harding" },
+                { 8, "Gloria Feist" },
+                { 9, "Professor Achtung" },
+                { 10, "British Solider" }
+            };
+
         public ATFDocument Document { get; private set; }
         public ATHEntry Header { get; private set; }
 
@@ -16,100 +33,57 @@ namespace MGUSpeechExporter
 
         public MemoryStream ReadWave(FileStream fs)
         {
-            if (Header.WaveSize == 0) return null;
+            if (Header.WaveSize == 0)
+                return null;
 
             MemoryStream stream = new MemoryStream(Header.WaveSize);
 
             fs.Seek(Header.WaveOffset, SeekOrigin.Begin);
-            CopyStream(fs, stream, Header.WaveSize);
+            Export.CopyStream(fs, stream, Header.WaveSize);
 
             return stream;
         }
 
-        public MemoryStream ReadText(FileStream fs)
+        public List<SubtitleEntry> ReadText(FileStream fs)
         {
-            if (!Header.IsValid) return null;
+            List<SubtitleEntry> entries = new List<SubtitleEntry>();
 
-            MemoryStream stream = new MemoryStream();
+            if (!Header.IsValid)
+                return entries;
 
-            fs.Seek(Header.TextOffset + 8, SeekOrigin.Begin);
+            BinaryReader br = new BinaryReader(fs);
+            fs.Seek(Header.TextOffset, SeekOrigin.Begin);
 
             do
             {
-                int read = fs.ReadByte();
-
-                if (read == 0xFF)
+                int timestamp = br.ReadInt32();
+                if (timestamp == -1)
                     break;
 
-                if (read != 0x00)
-                    stream.WriteByte((byte)read);
-                else
-                {
-                    stream.WriteByte(Convert.ToByte('\r'));
-                    stream.WriteByte(Convert.ToByte('\n'));
+                SubtitleEntry entry = new SubtitleEntry(
+                    timestamp, 
+                    br.ReadInt16(), 
+                    br.ReadInt16()
+                );
 
-                    fs.Seek(8, SeekOrigin.Current);
-                }
+                byte read;
+                while ((read = br.ReadByte()) != 0x00)
+                    entry.Text += (char)read;
+
+                entries.Add(entry);
             } while (fs.Position < Header.WaveOffset && fs.Position < fs.Length);
 
-            return stream;
+            return entries;
         }
 
-        public void SaveDataToDisk(FileStream input, DirectoryInfo folder)
-        {
-            SaveWaveToDisk(input, folder);
-            SaveTextToDisk(input, folder);
-        }
+        public MemoryStream GetAudio(FileStream fs) =>
+            ReadWave(fs);
 
-        public void SaveWaveToDisk(FileStream input, DirectoryInfo folder)
-        {
-            if (Header.WaveSize == 0) return;
+        public List<SubtitleEntry> GetSubtitles(FileStream fs) =>
+            ReadText(fs);
 
-            string path = Path.Combine(folder.FullName, GetOutputFileName(".wav"));
-
-            using (FileStream output = File.Create(path))
-            {
-                input.Seek(Header.WaveOffset, SeekOrigin.Begin);
-                CopyStream(input, output, Header.WaveSize);
-            }
-        }
-
-        public void SaveTextToDisk(FileStream input, DirectoryInfo folder)
-        {
-            if (!Header.IsValid) return;
-
-            string path = Path.Combine(folder.FullName, GetOutputFileName(".txt"));
-
-            using (MemoryStream stream = ReadText(input))
-            {
-                if (stream.Length <= 0) return;
-
-                using (FileStream output = File.Create(path))
-                {
-                    stream.Seek(0, SeekOrigin.Begin);
-                    stream.CopyTo(output);
-                }
-            }
-        }
-
-        public string GetOutputFileName(string extension = "")
-        {
-            return String.Format("{0}_{1}{2}",
+        public string GetFileName(string extension = "") =>
+            String.Format("{0}_{1}{2}",
                 Path.GetFileNameWithoutExtension(Document.PathInfo.Name), Header.Index + 1, extension);
-        }
-
-        // https://stackoverflow.com/questions/13021866/any-way-to-use-stream-copyto-to-copy-only-certain-number-of-bytes
-        private void CopyStream(Stream input, Stream output, int bytes)
-        {
-            byte[] buffer = new byte[32768];
-            int read;
-
-            while (bytes > 0 &&
-                   (read = input.Read(buffer, 0, Math.Min(buffer.Length, bytes))) > 0)
-            {
-                output.Write(buffer, 0, read);
-                bytes -= read;
-            }
-        }
     }
 }
